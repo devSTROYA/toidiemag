@@ -29,6 +29,7 @@
 // changelog    1.12.0 - b. Make Ninja Trial Attempts On Background (Dont Rely To Teamstone)
 // changelog    1.12.0 - c. Increase Timeout for Impel Down to reduce retry
 // changelog    1.13.0 - Add verification for energy used in Slot Machine
+// changelog    1.13.1 - Add Demon Boss list for Soulblade Demon automation"
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -291,6 +292,11 @@ class SoulDemonBlade {
       10041, // earthbore
       10042, // windbore
       10043, // thunderbore
+      10003, // Area 51
+      10035, // Area 36
+      10020, // Area 56
+      10018, // Area 61
+      10052, // Area 41
     ];
     const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
     const npcCanvas = document.querySelector(selector);
