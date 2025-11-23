@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.12.0
+// @version      1.13.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -28,6 +28,7 @@
 // changelog    1.12.0 - a. Enhance Snackbar Functionality
 // changelog    1.12.0 - b. Make Ninja Trial Attempts On Background (Dont Rely To Teamstone)
 // changelog    1.12.0 - c. Increase Timeout for Impel Down to reduce retry
+// changelog    1.13.0 - Add verification for energy used in Slot Machine
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -204,6 +205,19 @@ class SlotMachine {
 
   static challenge() {
     if (!this.isAutomatic) return;
+
+    const img = document.querySelector('img.j-image[title$="/200"][src*="RoleIcon/bar.png"]');
+
+    if (img) {
+      const value = parseInt(img.title, 10);
+
+      if (value < 3) {
+        showSnackbar(`You are out of energy, please refill...`, COLORS.FAILED);
+        this.isAutomatic = false;
+        document.getElementById('toggleButton')?.click();
+        return;
+      }
+    }
 
     const boundCallback = this.challenge.bind(this);
     const challengeButton = document.querySelector('.slot-machine__challenge-btn');
