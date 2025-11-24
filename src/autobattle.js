@@ -298,6 +298,7 @@ class SoulDemonBlade {
       10018, // Area 61
       10052, // Area 41
       10034, // Area 26
+      10032, // Area 31
     ];
     const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
     const npcCanvas = document.querySelector(selector);
