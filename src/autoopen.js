@@ -365,4 +365,6 @@
 
     return interval;
   }
+
+  createAutoOpenUI();
 })();
