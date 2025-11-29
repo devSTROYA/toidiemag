@@ -73,17 +73,11 @@ class TeamStone {
     return (s || '').replace(/\s+/g, ' ').trim().toLowerCase();
   }
 
-  static clickByTextInPanel(
-    text = 'heal',
-    selectorParent = '.panel--original, .panel--dark',
-    childSelector = '.clickable'
-  ) {
+  static clickByTextInPanel(text = 'heal', selectorParent = '.panel--original, .panel--dark', childSelector = '.clickable') {
     const panels = document.querySelectorAll(selectorParent);
 
     for (const panel of panels) {
-      const target = Array.from(panel.querySelectorAll(childSelector)).find(
-        (el) => this.normalizeText(el.textContent) === text.toLowerCase()
-      );
+      const target = Array.from(panel.querySelectorAll(childSelector)).find((el) => this.normalizeText(el.textContent) === text.toLowerCase());
       if (target) {
         target.click();
         return target;
@@ -299,6 +293,7 @@ class SoulDemonBlade {
       10052, // Area 41
       10034, // Area 26
       10032, // Area 31
+      10031, // Area 46
     ];
     const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
     const npcCanvas = document.querySelector(selector);
@@ -482,9 +477,7 @@ class LasNoches {
 
     const boundCallback = this.startOrContinue.bind(this);
 
-    let floorElement = [...document.querySelectorAll('pre')].find((pre) =>
-      pre.textContent.trim().startsWith('Current Floor')
-    );
+    let floorElement = [...document.querySelectorAll('pre')].find((pre) => pre.textContent.trim().startsWith('Current Floor'));
 
     if (floorElement) {
       let currentFloor = parseInt(floorElement.textContent.replace('Current Floor', '').trim(), 10);
@@ -498,9 +491,7 @@ class LasNoches {
     }
 
     const selector = 'button.theme__button--original, button.theme__button--dark';
-    const button = [...document.querySelectorAll(selector)].find((btn) =>
-      ['continue', 'start'].includes(btn.textContent.trim().toLowerCase())
-    );
+    const button = [...document.querySelectorAll(selector)].find((btn) => ['continue', 'start'].includes(btn.textContent.trim().toLowerCase()));
 
     if (button) {
       button.click();
