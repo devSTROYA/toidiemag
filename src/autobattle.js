@@ -30,6 +30,7 @@
 // changelog    1.12.0 - c. Increase Timeout for Impel Down to reduce retry
 // changelog    1.13.0 - Add verification for energy used in Slot Machine
 // changelog    1.13.1 - Add Demon Boss list for Soulblade Demon automation"
+// changelog    1.13.2 - Fix Valhalla Automation
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -286,14 +287,15 @@ class SoulDemonBlade {
       10041, // earthbore
       10042, // windbore
       10043, // thunderbore
-      10003, // Area 51
-      10035, // Area 36
-      10020, // Area 56
-      10018, // Area 61
-      10052, // Area 41
       10034, // Area 26
       10032, // Area 31
+      10035, // Area 36
+      10052, // Area 41 21.00
       10031, // Area 46
+      10003, // Area 51
+      10020, // Area 56
+      10018, // Area 61
+      31021, // Area 66
     ];
     const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
     const npcCanvas = document.querySelector(selector);
@@ -545,30 +547,53 @@ class LasNoches {
 class Valhalla {
   static isAutomatic = false;
   static currentDungeonIndex = 0;
-  static valhallaDungeons = [
-    {
-      completeSelector: '#game-container > div:nth-child(5) > div:nth-child(2) > img[src*="0_complete.png"]',
-      buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(2) > button > img',
-      monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(3)',
-    },
-    {
-      completeSelector: '#game-container > div:nth-child(5) > div:nth-child(3) > img[src*="1_complete.png"]',
-      buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(3) > button > img',
-      monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(4)',
-    },
-    {
-      completeSelector: '#game-container > div:nth-child(5) > div:nth-child(4) > img[src*="2_complete.png"]',
-      buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(4) > button > img',
-      monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(5)',
-    },
-    {
-      completeSelector: '#game-container > div:nth-child(5) > div:nth-child(5) > img[src*="3_complete.png"]',
-      buttonSelector: '#game-container > div:nth-child(5) > div:nth-child(5) > button > img',
-      monsterContainer: '#game-container > div:nth-child(5) > div:nth-child(6)',
-    },
-  ];
 
-  static waitForElement(selector, callback, checkInterval = 500) {
+  // ✔ Automatically detect all dungeons under /dungeons/6/
+  static getDungeons() {
+    const dungeonNodes = Array.from(document.querySelectorAll('img[src*="valhalla/dungeons/6/"]')).filter((img) => /\/6\/\d+\.png$/.test(img.src));
+
+    const dungeons = dungeonNodes.map((img) => {
+      const match = img.src.match(/\/6\/(\d+)\.png$/);
+      const index = parseInt(match[1]);
+
+      const container = img.closest('div'); // parent container holding button + status
+      const button = container.querySelector('button img');
+      const completeImg = container.querySelector(`img[src*="${index}_complete.png"]`);
+
+      // The monster panel is always the next sibling div
+      const monsterContainer = container.nextElementSibling;
+
+      return {
+        index,
+        buttonSelector: button ? this.cssPath(button) : null,
+        completeSelector: completeImg ? this.cssPath(completeImg) : null,
+        monsterContainerSelector: monsterContainer ? this.cssPath(monsterContainer) : null,
+      };
+    });
+
+    // Sort by index (0,1,2,3...)
+    return dungeons.sort((a, b) => a.index - b.index);
+  }
+
+  // Utility to convert DOM nodes to CSS selector
+  static cssPath(el) {
+    if (!el) return null;
+    if (el.id) return `#${el.id}`;
+    const path = [];
+    while (el && el.nodeType === Node.ELEMENT_NODE) {
+      let selector = el.nodeName.toLowerCase();
+      if (el.className) {
+        selector += '.' + el.className.trim().replace(/\s+/g, '.');
+      }
+      path.unshift(selector);
+      el = el.parentNode;
+      if (el === document.body) break;
+    }
+    return path.join(' > ');
+  }
+
+  // Wait for element helper
+  static waitForElement(selector, callback, intervalTime = 500) {
     const interval = setInterval(() => {
       if (!this.isAutomatic) return clearInterval(interval);
       const el = document.querySelector(selector);
@@ -576,110 +601,104 @@ class Valhalla {
         clearInterval(interval);
         callback(el);
       }
-    }, checkInterval);
+    }, intervalTime);
   }
 
-  static openDungeon(index, callback) {
-    this.waitForElement(this.valhallaDungeons[index].buttonSelector, (button) => {
-      button.click();
-      this.waitForElement('img[src*="dungeons/select.png"]', () => {
-        callback();
-      });
+  static openDungeon(dungeon, callback) {
+    if (!dungeon.buttonSelector) return callback();
+
+    this.waitForElement(dungeon.buttonSelector, (btn) => {
+      btn.click();
+
+      // Wait for dungeon page to show monster selection
+      this.waitForElement('img[src*="dungeons/select.png"]', () => callback());
     });
   }
 
-  static nextEnemy(baseSelector, currentMonster, callback) {
+  static nextEnemy(monsterContainerSelector, currentMonster, callback) {
     if (!this.isAutomatic) return;
 
-    if (currentMonster > 6) {
-      callback();
-      return;
-    }
+    if (currentMonster > 6) return callback();
 
-    const monsterBtn = document.querySelector(`${baseSelector} > button:nth-child(${currentMonster}) > img`);
-    const boundCallback = this.nextEnemy.bind(this, baseSelector, currentMonster, callback);
+    const selector = `${monsterContainerSelector} button:nth-child(${currentMonster}) img`;
+    const monsterBtn = document.querySelector(selector);
+    const retry = () => this.nextEnemy(monsterContainerSelector, currentMonster + 1, callback);
 
-    if (!monsterBtn || monsterBtn.parentElement.classList.contains('--disabled')) {
-      currentMonster++;
-      return this.nextEnemy(baseSelector, currentMonster, callback);
+    if (!monsterBtn || monsterBtn.closest('button').classList.contains('--disabled')) {
+      return retry();
     }
 
     monsterBtn.click();
 
     setTimeout(() => {
-      const battleRunning = document.querySelector('#fightContainer');
-
-      if (!battleRunning) {
-        window.autoBattleRetryLogic();
+      const running = document.querySelector('#fightContainer');
+      if (!running) {
+        window.autoBattleRetryLogic?.();
       } else {
-        currentMonster++;
-        repetitiveBattleCheck(boundCallback, false, 4000);
+        repetitiveBattleCheck(() => retry(), false, 4000);
       }
     }, 1500);
   }
 
-  static fightAllMonsters(index, callback) {
-    const baseSelector = this.valhallaDungeons[index].monsterContainer;
-    let currentMonster = 2;
-
-    this.nextEnemy(baseSelector, currentMonster, callback);
+  static fightAllMonsters(dungeon, callback) {
+    const selector = dungeon.monsterContainerSelector;
+    this.nextEnemy(selector, 2, callback);
   }
 
   static nextDungeon() {
     if (!this.isAutomatic) return;
 
-    const monsterSelectPanelSelector = 'img[src*="dungeons/select.png"]';
-    const boundCallback = this.nextDungeon.bind(this);
+    const dungeons = this.getDungeons();
 
-    if (document.querySelector(monsterSelectPanelSelector)) {
-      return this.fightAllMonsters(this.currentDungeonIndex, () => {
-        this.currentDungeonIndex++;
-        setTimeout(boundCallback, 1000);
-      });
-    }
-
-    if (this.currentDungeonIndex >= this.valhallaDungeons.length) {
-      document.getElementById('toggleButton')?.click();
-      this.isAutomatic = false;
+    if (this.currentDungeonIndex >= dungeons.length) {
+      this.stopAutomation(true);
       return;
     }
 
-    const dungeon = this.valhallaDungeons[this.currentDungeonIndex];
+    const dungeon = dungeons[this.currentDungeonIndex];
+    const selectPanel = document.querySelector('img[src*="dungeons/select.png"]');
 
-    if (document.querySelector(dungeon.completeSelector)) {
+    if (selectPanel) {
+      return this.fightAllMonsters(dungeon, () => {
+        this.currentDungeonIndex++;
+        setTimeout(() => this.nextDungeon(), 1000);
+      });
+    }
+
+    // If dungeon already completed → skip
+    if (dungeon.completeSelector && document.querySelector(dungeon.completeSelector)) {
       this.currentDungeonIndex++;
       return this.nextDungeon();
     }
 
-    this.openDungeon(this.currentDungeonIndex, () => {
-      this.fightAllMonsters(this.currentDungeonIndex, () => {
+    // Open and fight
+    this.openDungeon(dungeon, () => {
+      this.fightAllMonsters(dungeon, () => {
         this.currentDungeonIndex++;
-        setTimeout(boundCallback, 1000);
+        setTimeout(() => this.nextDungeon(), 1000);
       });
     });
   }
 
   static battle() {
     if (this.isAutomatic) return;
+
     this.isAutomatic = true;
     this.currentDungeonIndex = 0;
 
+    showSnackbar('Valhalla automation started...', COLORS.SUCCESS);
     this.nextDungeon();
   }
 
   static startAutomation() {
     if (!this.isAutomatic) {
-      showSnackbar('Valhalla automation started...', COLORS.SUCCESS);
       this.battle();
     }
   }
 
-  static stopAutomation(withSnackbar = true) {
+  static stopAutomation(show = true) {
     this.isAutomatic = false;
-
-    if (withSnackbar) {
-      showSnackbar('Valhalla automation stopped...', COLORS.SUCCESS);
-    }
+    if (show) showSnackbar('Valhalla automation stopped...', COLORS.SUCCESS);
   }
 }
 
