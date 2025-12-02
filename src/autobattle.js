@@ -361,15 +361,18 @@ class SoulDemonBlade {
 
     setTimeout(() => {
       this.clickButtonByText('Accept');
-      const battleRunning = document.querySelector('#fightContainer');
 
-      if (!battleRunning) {
-        window.autoBattleRetryLogic();
-        return;
-      }
+      setTimeout(() => {
+        const battleRunning = document.querySelector('#fightContainer');
 
-      repetitiveBattleCheck(boundCallback, false, 1500);
-    }, 3000);
+        if (!battleRunning) {
+          window.autoBattleRetryLogic();
+          return;
+        }
+
+        repetitiveBattleCheck(boundCallback, false, 1500);
+      }, 1500);
+    }, 500);
   }
 
   static startAutomation() {
