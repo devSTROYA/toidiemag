@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.13.0
+// @version      1.14.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -31,6 +31,7 @@
 // changelog    1.13.0 - Add verification for energy used in Slot Machine
 // changelog    1.13.1 - Add Demon Boss list for Soulblade Demon automation"
 // changelog    1.13.2 - Fix Valhalla Automation
+// changelog    1.14.0 - Add retry mechanism for Demon Boss
 
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
@@ -349,28 +350,25 @@ class SoulDemonBlade {
 
     const boundCallback = this.runLoop.bind(this);
 
+    if (this.checkForOutOfProofs()) {
+      showSnackbar('Out of Demon Proofs. Stopping.', COLORS.FAILED);
+      this.isAutomatic = false;
+      return;
+    }
+
     setTimeout(() => {
-      if (this.checkForOutOfProofs()) {
-        showSnackbar('Out of Demon Proofs. Stopping.', COLORS.FAILED);
-        this.isAutomatic = false;
-        return;
-      }
-
-      const accepted = this.clickButtonByText('Accept');
-
-      if (!accepted) {
-        showSnackbar('Accept not found, retrying in next loop.', COLORS.FAILED);
-        this.farmingLoop = setTimeout(boundCallback, this.loopInterval);
-        return;
-      }
+      this.clickButtonByText('Accept');
 
       setTimeout(() => {
-        repetitiveBattleCheck(() => {
-          if (this.isAutomatic) {
-            this.farmingLoop = setTimeout(boundCallback, this.loopInterval);
-          }
-        }, false);
-      }, this.battleDuration);
+        const battleRunning = document.querySelector('#fightContainer');
+
+        if (!battleRunning) {
+          window.autoBattleRetryLogic();
+          return;
+        }
+
+        repetitiveBattleCheck(boundCallback, false, 1500);
+      }, 1500);
     }, this.clickDelay);
   }
 
@@ -378,9 +376,11 @@ class SoulDemonBlade {
     this.isAutomatic = true;
     showSnackbar('Soulblade demon automation started...', COLORS.SUCCESS);
 
-    if (!this.farmingLoop) {
-      this.farmingLoop = setTimeout(this.runLoop(), this.loopInterval);
-    }
+    this.runLoop();
+
+    // if (!this.farmingLoop) {
+    //   this.farmingLoop = setTimeout(this.runLoop(), this.loopInterval);
+    // }
   }
 
   static stopAutomation(withSnackbar = true) {
@@ -390,10 +390,10 @@ class SoulDemonBlade {
       showSnackbar('Soulblade demon automation stopped...', COLORS.SUCCESS);
     }
 
-    if (this.farmingLoop) {
-      clearTimeout(this.farmingLoop);
-      this.farmingLoop = null;
-    }
+    // if (this.farmingLoop) {
+    //   clearTimeout(this.farmingLoop);
+    //   this.farmingLoop = null;
+    // }
   }
 }
 
@@ -547,31 +547,41 @@ class LasNoches {
 class Valhalla {
   static isAutomatic = false;
   static currentDungeonIndex = 0;
+  static dungeons = null;
 
   // ✔ Automatically detect all dungeons under /dungeons/6/
   static getDungeons() {
-    const dungeonNodes = Array.from(document.querySelectorAll('img[src*="valhalla/dungeons/6/"]')).filter((img) => /\/6\/\d+\.png$/.test(img.src));
-
-    const dungeons = dungeonNodes.map((img) => {
-      const match = img.src.match(/\/6\/(\d+)\.png$/);
-      const index = parseInt(match[1]);
-
-      const container = img.closest('div'); // parent container holding button + status
-      const button = container.querySelector('button img');
-      const completeImg = container.querySelector(`img[src*="${index}_complete.png"]`);
-
-      // The monster panel is always the next sibling div
-      const monsterContainer = container.nextElementSibling;
-
-      return {
-        index,
-        buttonSelector: button ? this.cssPath(button) : null,
-        completeSelector: completeImg ? this.cssPath(completeImg) : null,
-        monsterContainerSelector: monsterContainer ? this.cssPath(monsterContainer) : null,
-      };
+    // Match ANY dungeon folder: /valhalla/dungeons/{X}/{Y}.png
+    const dungeonNodes = Array.from(document.querySelectorAll('img[src*="valhalla/dungeons/"]')).filter((img) => {
+      return /\/dungeons\/\d+\/\d+\.png$/.test(img.src);
     });
 
-    // Sort by index (0,1,2,3...)
+    const dungeons = dungeonNodes
+      .map((img) => {
+        // Capture both folder and index (folder not used but validated)
+        const match = img.src.match(/\/dungeons\/(\d+)\/(\d+)\.png$/);
+        if (!match) return null;
+
+        const folder = parseInt(match[1]); // old "6"
+        const index = parseInt(match[2]); // dungeon index
+
+        const container = img.closest('div');
+        const button = container?.querySelector('button img');
+        const completeImg = container?.querySelector(`img[src*="${index}_complete.png"]`);
+
+        // Monster panel is still the next sibling
+        const monsterContainer = container?.nextElementSibling;
+
+        return {
+          folder, // useful if needed later
+          index,
+          buttonSelector: button ? this.cssPath(button) : null,
+          completeSelector: completeImg ? this.cssPath(completeImg) : null,
+          monsterContainerSelector: monsterContainer ? this.cssPath(monsterContainer) : null,
+        };
+      })
+      .filter(Boolean);
+
     return dungeons.sort((a, b) => a.index - b.index);
   }
 
@@ -618,10 +628,17 @@ class Valhalla {
   static nextEnemy(monsterContainerSelector, currentMonster, callback) {
     if (!this.isAutomatic) return;
 
-    if (currentMonster > 6) return callback();
+    // Auto-detect real number of monsters (count buttons inside panel)
+    const monsterButtons = document.querySelectorAll(`${monsterContainerSelector} button img`);
+    const maxMonster = monsterButtons.length + 1; // because your indexing starts at 2
+
+    if (currentMonster >= maxMonster + 1) {
+      return callback();
+    }
 
     const selector = `${monsterContainerSelector} button:nth-child(${currentMonster}) img`;
     const monsterBtn = document.querySelector(selector);
+
     const retry = () => this.nextEnemy(monsterContainerSelector, currentMonster + 1, callback);
 
     if (!monsterBtn || monsterBtn.closest('button').classList.contains('--disabled')) {
@@ -633,7 +650,7 @@ class Valhalla {
     setTimeout(() => {
       const running = document.querySelector('#fightContainer');
       if (!running) {
-        window.autoBattleRetryLogic?.();
+        window.autoBattleRetryLogic();
       } else {
         repetitiveBattleCheck(() => retry(), false, 4000);
       }
@@ -648,14 +665,13 @@ class Valhalla {
   static nextDungeon() {
     if (!this.isAutomatic) return;
 
-    const dungeons = this.getDungeons();
-
-    if (this.currentDungeonIndex >= dungeons.length) {
-      this.stopAutomation(true);
+    if (this.currentDungeonIndex >= this.dungeons.length) {
+      document.getElementById('toggleButton')?.click();
+      this.isAutomatic = false;
       return;
     }
 
-    const dungeon = dungeons[this.currentDungeonIndex];
+    const dungeon = this.dungeons[this.currentDungeonIndex];
     const selectPanel = document.querySelector('img[src*="dungeons/select.png"]');
 
     if (selectPanel) {
@@ -685,6 +701,7 @@ class Valhalla {
 
     this.isAutomatic = true;
     this.currentDungeonIndex = 0;
+    this.dungeons = this.getDungeons();
 
     showSnackbar('Valhalla automation started...', COLORS.SUCCESS);
     this.nextDungeon();
