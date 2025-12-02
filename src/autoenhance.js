@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Auto Refine, Enhance, Inscribe & Recast
+// @name         Auto Refine++
 // @namespace    http://tampermonkey.net/
 // @version      1.0.0
 // @description  Auto Refine, Enhance, Inscribe, and Recast
@@ -33,18 +33,14 @@ class Refine {
 
   static reroll() {
     return new Promise((resolve) => {
-      let attemptButton = document.querySelector(
-        '#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button:nth-child(2)'
-      );
+      let attemptButton = document.querySelector('#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button:nth-child(2)');
 
       if (attemptButton) {
         attemptButton.click();
         console.log('🔄 Clicked Attempt button!');
 
         setTimeout(() => {
-          let acceptButton = document.querySelector(
-            '#game-container > div:nth-child(6) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)'
-          );
+          let acceptButton = document.querySelector('#game-container > div:nth-child(6) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)');
           if (acceptButton) {
             acceptButton.click();
             console.log('✅ Clicked Accept button!');
@@ -58,14 +54,8 @@ class Refine {
   static async startAutomation() {
     showSnackbar('Refine automation started...', COLORS.SUCCESS);
 
-    const requiredStatsInput = prompt(
-      'Please enter required stats separated by comma (ex: Stamina, Dodge):',
-      'Stamina, Dodge'
-    );
-    const optionalStatsInput = prompt(
-      'Please enter optional stats separated by comma (ex: Agility, Hit):',
-      'Agility, Hit'
-    );
+    const requiredStatsInput = prompt('Please enter required stats separated by comma (ex: Stamina, Dodge):', 'Stamina, Dodge');
+    const optionalStatsInput = prompt('Please enter optional stats separated by comma (ex: Agility, Hit):', 'Agility, Hit');
 
     if (!requiredStatsInput || !optionalStatsInput) {
       showSnackbar('Please enter required and optional stats.', COLORS.FAILED);
@@ -140,12 +130,8 @@ class Enhance {
       document.getElementById('toggleButtonEnhance')?.click();
     }
 
-    let attemptButton = document.querySelector(
-      '#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(1) > button:nth-child(2)'
-    );
-    let acceptButton = document.querySelector(
-      '#game-container > div:nth-child(6) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)'
-    );
+    let attemptButton = document.querySelector('#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(1) > button:nth-child(2)');
+    let acceptButton = document.querySelector('#game-container > div:nth-child(6) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)');
 
     if (attemptButton) attemptButton.click();
 
@@ -180,110 +166,72 @@ class Inscribe {
     input.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
-  static setTalismanByLevel(currentLevel) {
+  static processInscribe(type, amount, currentLevel) {
     const lowRadio = document.querySelector("#game-container input[type=radio][name=bonus][value='0']");
     const highRadio = document.querySelector("#game-container input[type=radio][name=bonus][value='1']");
     const inputBox = document.querySelector('#game-container input[type=number]');
 
     if (!lowRadio || !highRadio || !inputBox) {
-      console.log('⚠️ Tidak bisa menemukan elemen talisman.');
+      console.log('⚠️ Element talisman not found.');
       return;
     }
 
-    function processInscribe(type, amount) {
-      if (type === 'low') {
-        lowRadio.click();
-      } else {
-        highRadio.click();
-      }
-
-      this.setInputValue(inputBox, amount);
-      console.log(`🎯 Set ${amount} ${lowOrHigh === 'low' ? 'Low' : 'High'} Talisman for Level ${currentLevel}`);
+    if (type === 'low') {
+      lowRadio.click();
+    } else {
+      highRadio.click();
     }
 
+    this.setInputValue(inputBox, amount);
+    console.log(`🎯 Set ${amount} ${type === 'low' ? 'Low' : 'High'} Talisman for Level ${currentLevel}`);
+  }
+
+  static setTalismanByLevel(currentLevel) {
     switch (true) {
       // Level 0–5
       case currentLevel >= 0 && currentLevel <= 5:
-        processInscribe('low', 1);
+        this.processInscribe('low', 1, currentLevel);
         break;
 
       // Level 6
       case currentLevel === 6:
-        processInscribe('low', 3);
+        this.processInscribe('low', 3, currentLevel);
         break;
 
       // Level 7
       case currentLevel === 7:
-        processInscribe('high', 3);
+        this.processInscribe('high', 3, currentLevel);
         break;
 
       // Level 8
       case currentLevel === 8:
-        processInscribe('low', 1);
+        this.processInscribe('low', 1, currentLevel);
         break;
 
       // Level 9–10
       case [9, 10].includes(currentLevel):
-        processInscribe('low', 3);
+        this.processInscribe('low', 3, currentLevel);
         break;
 
       // Level 11
       case currentLevel === 11:
-        processInscribe('high', 3);
+        this.processInscribe('high', 3, currentLevel);
         break;
 
       // Level 12
       case currentLevel === 12:
-        processInscribe('low', 1);
+        this.processInscribe('low', 1, currentLevel);
         break;
 
       // Level 13
       case currentLevel === 13:
-        processInscribe('low', 3);
+        this.processInscribe('low', 3, currentLevel);
         break;
 
       // Level 14–15
       case [14, 15].includes(currentLevel):
-        processInscribe('high', 3);
+        this.processInscribe('high', 3, currentLevel);
         break;
-    }
-
-    if (currentLevel >= 0 && currentLevel <= 5) {
-      lowRadio.click();
-      this.setInputValue(inputBox, 1);
-      console.log(`🎯 Set 1 Low Talisman for Level ${currentLevel}`);
-    } else if (currentLevel === 6) {
-      lowRadio.click();
-      this.setInputValue(inputBox, 3);
-      console.log('🎯 Set 3 Low Talisman for Level 6');
-    } else if (currentLevel === 7) {
-      highRadio.click();
-      this.setInputValue(inputBox, 3);
-      console.log('🎯 Set 3 Low Talisman for Level 7');
-    } else if (currentLevel === 8) {
-      lowRadio.click();
-      this.setInputValue(inputBox, 1);
-      console.log('🎯 Set 1 Low Talisman for Level 8');
-    } else if (currentLevel === 9 || currentLevel === 10) {
-      lowRadio.click();
-      this.setInputValue(inputBox, 3);
-      console.log(`🎯 Set 3 Low Talisman for Level ${currentLevel}`);
-    } else if (currentLevel === 11) {
-      highRadio.click();
-      this.setInputValue(inputBox, 3);
-      console.log('🎯 Set 3 High Talisman for Level 11');
-    } else if (currentLevel === 12) {
-      lowRadio.click();
-      this.setInputValue(inputBox, 1);
-      console.log('🎯 Set 1 Low Talisman for Level 12');
-    } else if (currentLevel === 13) {
-      lowRadio.click();
-      this.setInputValue(inputBox, 3);
-      console.log('🎯 Set 3 Low Talisman for Level 13');
-    } else if (currentLevel === 14 || currentLevel === 15) {
-      highRadio.click();
-      this.setInputValue(inputBox, 3);
-      console.log(`🎯 Set 3 High Talisman for Level ${currentLevel}`);
     }
   }
 
@@ -305,9 +253,7 @@ class Inscribe {
       }
     }
 
-    const inscribeButton = document.querySelector(
-      '#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > button'
-    );
+    const inscribeButton = document.querySelector('#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > button');
     if (inscribeButton && inscribeButton.innerText.trim() === 'Attempt') {
       inscribeButton.click();
       console.log("✍️ Clicked 'Attempt' button...");
@@ -370,13 +316,9 @@ class Recast {
 
     const boundCallback = this.autoRecast.bind(this);
 
-    const attemptButton = document.querySelector(
-      '#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button'
-    );
+    const attemptButton = document.querySelector('#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button');
 
-    const acceptButton = document.querySelector(
-      '#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)'
-    );
+    const acceptButton = document.querySelector('#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)');
 
     if (!attemptButton || attemptButton.disabled) {
       console.log('⛔ Recast Attempt unavailable (button disabled). Stopping loop.');
