@@ -219,12 +219,7 @@ class Inscribe {
         break;
 
       // Level 12
-      case currentLevel === 12:
-        this.processInscribe('low', 1, currentLevel);
-        break;
-
-      // Level 13
-      case currentLevel === 13:
+      case [12, 13].includes(currentLevel):
         this.processInscribe('low', 3, currentLevel);
         break;
 
