@@ -33,6 +33,11 @@
 // changelog    1.13.2 - Fix Valhalla Automation
 // changelog    1.14.0 - Add retry mechanism for Demon Boss
 
+const valhallaSelectors = (index) => ({
+  completeSelector: `div > main > div.grid--overlap > div > div > img[src*="${index}_complete.png"]`,
+  buttonSelector: 'div > main > div.grid--overlap > div > div > button > img',
+  monsterContainer: 'div > main > div.grid--overlap > div > div',
+});
 const COLORS = {
   SUCCESS: 'rgba(64, 160, 43, 0.9)',
   FAILED: 'rgba(230, 69, 83, 0.9)',
@@ -541,63 +546,28 @@ class LasNoches {
 class Valhalla {
   static isAutomatic = false;
   static currentDungeonIndex = 0;
-  static dungeons = null;
+  static valhallaDungeons = [];
 
-  // ✔ Automatically detect all dungeons under /dungeons/6/
-  static getDungeons() {
-    // Match ANY dungeon folder: /valhalla/dungeons/{X}/{Y}.png
-    const dungeonNodes = Array.from(document.querySelectorAll('img[src*="valhalla/dungeons/"]')).filter((img) => {
-      return /\/dungeons\/\d+\/\d+\.png$/.test(img.src);
-    });
+  static getDungeonCount() {
+    const imgs = Array.from(document.querySelectorAll(`img[src*="valhalla/dungeons/"]`));
 
-    const dungeons = dungeonNodes
+    const indexes = imgs
       .map((img) => {
-        // Capture both folder and index (folder not used but validated)
-        const match = img.src.match(/\/dungeons\/(\d+)\/(\d+)\.png$/);
+        const match = img.src.match(/\/(\d+)(?:_complete)?\.png$/);
         if (!match) return null;
 
-        const folder = parseInt(match[1]); // old "6"
-        const index = parseInt(match[2]); // dungeon index
-
-        const container = img.closest('div');
-        const button = container?.querySelector('button img');
-        const completeImg = container?.querySelector(`img[src*="${index}_complete.png"]`);
-
-        // Monster panel is still the next sibling
-        const monsterContainer = container?.nextElementSibling;
-
-        return {
-          folder, // useful if needed later
-          index,
-          buttonSelector: button ? this.cssPath(button) : null,
-          completeSelector: completeImg ? this.cssPath(completeImg) : null,
-          monsterContainerSelector: monsterContainer ? this.cssPath(monsterContainer) : null,
-        };
+        const index = parseInt(match[1]);
+        return isNaN(index) ? null : index;
       })
-      .filter(Boolean);
+      .filter((x) => x !== null);
 
-    return dungeons.sort((a, b) => a.index - b.index);
+    if (indexes.length === 0) return 0;
+
+    const maxIndex = Math.max(...indexes);
+    return maxIndex + 1;
   }
 
-  // Utility to convert DOM nodes to CSS selector
-  static cssPath(el) {
-    if (!el) return null;
-    if (el.id) return `#${el.id}`;
-    const path = [];
-    while (el && el.nodeType === Node.ELEMENT_NODE) {
-      let selector = el.nodeName.toLowerCase();
-      if (el.className) {
-        selector += '.' + el.className.trim().replace(/\s+/g, '.');
-      }
-      path.unshift(selector);
-      el = el.parentNode;
-      if (el === document.body) break;
-    }
-    return path.join(' > ');
-  }
-
-  // Wait for element helper
-  static waitForElement(selector, callback, intervalTime = 500) {
+  static waitForElement(selector, callback, checkInterval = 500) {
     const interval = setInterval(() => {
       if (!this.isAutomatic) return clearInterval(interval);
       const el = document.querySelector(selector);
@@ -605,111 +575,115 @@ class Valhalla {
         clearInterval(interval);
         callback(el);
       }
-    }, intervalTime);
+    }, checkInterval);
   }
 
-  static openDungeon(dungeon, callback) {
-    if (!dungeon.buttonSelector) return callback();
-
-    this.waitForElement(dungeon.buttonSelector, (btn) => {
-      btn.click();
-
-      // Wait for dungeon page to show monster selection
-      this.waitForElement('img[src*="dungeons/select.png"]', () => callback());
+  static openDungeon(index, callback) {
+    this.waitForElement(this.valhallaDungeons[index].buttonSelector, (button) => {
+      button.click();
+      this.waitForElement('img[src*="dungeons/select.png"]', () => {
+        callback();
+      });
     });
   }
 
-  static nextEnemy(monsterContainerSelector, currentMonster, callback) {
+  static nextEnemy(baseSelector, currentMonster, callback) {
     if (!this.isAutomatic) return;
 
-    // Auto-detect real number of monsters (count buttons inside panel)
-    const monsterButtons = document.querySelectorAll(`${monsterContainerSelector} button img`);
-    const maxMonster = monsterButtons.length + 1; // because your indexing starts at 2
-
-    if (currentMonster >= maxMonster + 1) {
-      return callback();
+    if (currentMonster > 6) {
+      callback();
+      return;
     }
 
-    const selector = `${monsterContainerSelector} button:nth-child(${currentMonster}) img`;
-    const monsterBtn = document.querySelector(selector);
+    const monsterBtn = document.querySelector(`${baseSelector} > button:nth-child(${currentMonster}) > img`);
+    const boundCallback = this.nextEnemy.bind(this, baseSelector, currentMonster, callback);
 
-    const retry = () => this.nextEnemy(monsterContainerSelector, currentMonster + 1, callback);
-
-    if (!monsterBtn || monsterBtn.closest('button').classList.contains('--disabled')) {
-      return retry();
+    if (!monsterBtn || monsterBtn.parentElement.classList.contains('--disabled')) {
+      currentMonster++;
+      return this.nextEnemy(baseSelector, currentMonster, callback);
     }
 
     monsterBtn.click();
 
     setTimeout(() => {
-      const running = document.querySelector('#fightContainer');
-      if (!running) {
+      const battleRunning = document.querySelector('#fightContainer');
+
+      if (!battleRunning) {
         window.autoBattleRetryLogic();
       } else {
-        repetitiveBattleCheck(() => retry(), false, 4000);
+        currentMonster++;
+        repetitiveBattleCheck(boundCallback, false, 4000);
       }
     }, 1500);
   }
 
-  static fightAllMonsters(dungeon, callback) {
-    const selector = dungeon.monsterContainerSelector;
-    this.nextEnemy(selector, 2, callback);
+  static fightAllMonsters(index, callback) {
+    const baseSelector = this.valhallaDungeons[index].monsterContainer;
+    let currentMonster = 2;
+
+    this.nextEnemy(baseSelector, currentMonster, callback);
   }
 
   static nextDungeon() {
     if (!this.isAutomatic) return;
 
-    if (this.currentDungeonIndex >= this.dungeons.length) {
+    const monsterSelectPanelSelector = 'img[src*="dungeons/select.png"]';
+    const boundCallback = this.nextDungeon.bind(this);
+
+    if (document.querySelector(monsterSelectPanelSelector)) {
+      return this.fightAllMonsters(this.currentDungeonIndex, () => {
+        this.currentDungeonIndex++;
+        setTimeout(boundCallback, 1000);
+      });
+    }
+
+    if (this.currentDungeonIndex >= this.valhallaDungeons.length) {
       document.getElementById('toggleButton')?.click();
       this.isAutomatic = false;
       return;
     }
 
-    const dungeon = this.dungeons[this.currentDungeonIndex];
-    const selectPanel = document.querySelector('img[src*="dungeons/select.png"]');
+    const dungeon = this.valhallaDungeons[this.currentDungeonIndex];
 
-    if (selectPanel) {
-      return this.fightAllMonsters(dungeon, () => {
-        this.currentDungeonIndex++;
-        setTimeout(() => this.nextDungeon(), 1000);
-      });
-    }
-
-    // If dungeon already completed → skip
-    if (dungeon.completeSelector && document.querySelector(dungeon.completeSelector)) {
+    if (document.querySelector(dungeon.completeSelector)) {
       this.currentDungeonIndex++;
       return this.nextDungeon();
     }
 
-    // Open and fight
-    this.openDungeon(dungeon, () => {
-      this.fightAllMonsters(dungeon, () => {
+    this.openDungeon(this.currentDungeonIndex, () => {
+      this.fightAllMonsters(this.currentDungeonIndex, () => {
         this.currentDungeonIndex++;
-        setTimeout(() => this.nextDungeon(), 1000);
+        setTimeout(boundCallback, 1000);
       });
     });
   }
 
   static battle() {
     if (this.isAutomatic) return;
-
     this.isAutomatic = true;
     this.currentDungeonIndex = 0;
-    this.dungeons = this.getDungeons();
 
-    showSnackbar('Valhalla automation started...', COLORS.SUCCESS);
     this.nextDungeon();
   }
 
   static startAutomation() {
     if (!this.isAutomatic) {
+      showSnackbar('Valhalla automation started...', COLORS.SUCCESS);
+      const dungeonsNumber = this.getDungeonCount();
+      for (let i = 0; i < dungeonsNumber; i++) {
+        this.valhallaDungeons.push(valhallaSelectors(i));
+      }
+      console.log(this.valhallaDungeons);
       this.battle();
     }
   }
 
-  static stopAutomation(show = true) {
+  static stopAutomation(withSnackbar = true) {
     this.isAutomatic = false;
-    if (show) showSnackbar('Valhalla automation stopped...', COLORS.SUCCESS);
+
+    if (withSnackbar) {
+      showSnackbar('Valhalla automation stopped...', COLORS.SUCCESS);
+    }
   }
 }
 
