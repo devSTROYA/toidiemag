@@ -673,7 +673,6 @@ class Valhalla {
       for (let i = 0; i < dungeonsNumber; i++) {
         this.valhallaDungeons.push(valhallaSelectors(i));
       }
-      console.log(this.valhallaDungeons);
       this.battle();
     }
   }
