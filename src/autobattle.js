@@ -359,8 +359,8 @@ class SoulDemonBlade {
       return;
     }
 
-    this.clickButtonByText('Accept');
     setTimeout(() => {
+      this.clickButtonByText('Accept');
       const battleRunning = document.querySelector('#fightContainer');
 
       if (!battleRunning) {
@@ -377,10 +377,6 @@ class SoulDemonBlade {
     showSnackbar('Soulblade demon automation started...', COLORS.SUCCESS);
 
     this.runLoop();
-
-    // if (!this.farmingLoop) {
-    //   this.farmingLoop = setTimeout(this.runLoop(), this.loopInterval);
-    // }
   }
 
   static stopAutomation(withSnackbar = true) {
@@ -389,11 +385,6 @@ class SoulDemonBlade {
     if (withSnackbar) {
       showSnackbar('Soulblade demon automation stopped...', COLORS.SUCCESS);
     }
-
-    // if (this.farmingLoop) {
-    //   clearTimeout(this.farmingLoop);
-    //   this.farmingLoop = null;
-    // }
   }
 }
 
