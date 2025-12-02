@@ -280,7 +280,7 @@ class SoulDemonBlade {
 
   static simulateBossClick() {
     const ids = [
-      10015, // soulender
+      10015, // soulender 9.00
       10019, // demon brute
       10026, // plague demon
       10039, // firebore
@@ -288,15 +288,18 @@ class SoulDemonBlade {
       10041, // earthbore
       10042, // windbore
       10043, // thunderbore
-      10034, // Area 26
-      10032, // Area 31
-      10035, // Area 36
+      10034, // Area 26 12.00
+      10032, // Area 31 15.00
+      10035, // Area 36 18.00
       10052, // Area 41 21.00
-      10031, // Area 46
-      10003, // Area 51
-      10020, // Area 56
-      10018, // Area 61
-      31021, // Area 66
+      10031, // Area 46 24.00
+      10003, // Area 51 3.00
+      10020, // Area 56 6.00
+      10018, // Area 61 13.00
+      31021, // Area 66 19.00
+      31022, // Area 71 1.00
+      // Area 81 7.00
+      // Area 86 10.00
     ];
     const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
     const npcCanvas = document.querySelector(selector);
