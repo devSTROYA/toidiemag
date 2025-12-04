@@ -3,7 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @description  SoulBlade Demon, Slot Machine, Las Noches, Valhalla
 // @author       Aoimaru
-// @version      1.14.0
+// @version      1.15.0
 // @match        *://*.pockieninja.online/*
 // @grant        none
 // ==/UserScript==
@@ -32,6 +32,7 @@
 // changelog    1.13.1 - Add Demon Boss list for Soulblade Demon automation"
 // changelog    1.13.2 - Fix Valhalla Automation
 // changelog    1.14.0 - Add retry mechanism for Demon Boss
+// changelog    1.15.0 - Add separated Ninja Trial solo and Parties
 
 const valhallaSelectors = (index) => ({
   completeSelector: `div > main > div.grid--overlap > div > div > img[src*="${index}_complete.png"]`,
@@ -46,10 +47,10 @@ const items = [
   { id: 'ex', label: 'Exploration' },
   { id: 'sd', label: 'Soulblade Demon' },
   { id: 'sm', label: 'Slot Machine - Leader' },
-  { id: 'sm2', label: 'Slot Machine - Parties' },
+  { id: 'pass', label: 'Passengers - Parties' },
   { id: 'ln', label: 'Las Noches' },
   { id: 'vh', label: 'Valhalla' },
-  { id: 'nt', label: 'Ninja Trial - Leader' },
+  { id: 'nt', label: 'Ninja Trial - Solo' },
   { id: 'nt2', label: 'Ninja Trial - Parties' },
   { id: 'id', label: 'Impel Down' },
 ];
@@ -164,6 +165,36 @@ class TeamStone {
       }
       return;
     }, 1000);
+  }
+}
+
+class Passengers {
+  static isAutomatic = false;
+
+  static startAutomation() {
+    if (!this.isAutomatic) {
+      this.isAutomatic = true;
+      showSnackbar('Passengers automation started...', COLORS.SUCCESS);
+      this.challenge();
+    }
+  }
+
+  static stopAutomation(withSnackbar = true) {
+    this.isAutomatic = false;
+
+    if (withSnackbar) {
+      showSnackbar('Passengers automation stopped...', COLORS.SUCCESS);
+    }
+  }
+
+  static challenge() {
+    if (!this.isAutomatic) return;
+
+    const boundCallback = this.challenge.bind(this);
+
+    setTimeout(() => {
+      repetitiveBattleCheck(boundCallback, true, 1500);
+    }, 3000);
   }
 }
 
@@ -302,8 +333,8 @@ class SoulDemonBlade {
       10020, // Area 56 at 6.00
       10018, // Area 61 at 13.00
       31021, // Area 66 at 19.00
-      31022, // Area 71 at 1.00
-      // TODO: Area 81 7.00
+      31022, // Area 71 at 8.00
+      28006, // Area 81 at 7.00
       // TODO: Area 86 10.00
     ];
     const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
@@ -724,7 +755,7 @@ class NinjaTrial {
 
     this.trialInterval = setInterval(() => {
       const buttons = [...document.querySelectorAll('button')];
-      const applyBtn = buttons.find((b) => b.textContent.trim() === 'Apply Trial');
+      const applyBtn = buttons.find((b) => b.textContent.trim() === 'Apply 1v1');
 
       if (applyBtn) {
         applyBtn.click();
@@ -744,11 +775,23 @@ class NinjaTrial {
   static applyTrialAsParties() {
     if (!this.isAutomatic) return;
 
-    const boundCallback = this.applyTrialAsParties.bind(this);
+    this.trialInterval = setInterval(() => {
+      const buttons = [...document.querySelectorAll('button')];
+      const applyBtn = buttons.find((b) => b.textContent.trim() === 'Apply 3v3');
 
-    setTimeout(() => {
-      repetitiveBattleCheck(boundCallback, true, 1500);
-    }, 3000);
+      if (applyBtn) {
+        applyBtn.click();
+        return;
+      }
+
+      const closeBtn = buttons.find((b) => b.textContent.trim() === 'Close');
+      if (closeBtn) {
+        console.log('[AutoBattle] Klik Close');
+        closeBtn.click();
+        TeamStone.heal();
+        return;
+      }
+    }, 2000);
   }
 }
 
@@ -1034,6 +1077,9 @@ function buttonToggle() {
         case 'sm':
           SlotMachine.stopAutomation(false);
           break;
+        case 'pass':
+          Passengers.stopAutomation(false);
+          break;
         case 'ln':
           LasNoches.stopAutomation(false);
           break;
@@ -1101,8 +1147,8 @@ function buttonToggle() {
       case 'sm':
         isRunning ? SlotMachine.startAutomation() : SlotMachine.stopAutomation();
         break;
-      case 'sm2':
-        isRunning ? SlotMachine.startAutomationParties() : SlotMachine.stopAutomation();
+      case 'pass':
+        isRunning ? Passengers.startAutomation() : Passengers.stopAutomation();
         break;
       case 'ln':
         isRunning ? LasNoches.startAutomation() : LasNoches.stopAutomation();
