@@ -1088,6 +1088,8 @@ function buttonToggle() {
           break;
         case 'nt':
           NinjaTrial.stopAutomation(false);
+        case 'nt2':
+          NinjaTrial.stopAutomation(false);
           break;
         case 'id':
           ImpelDown.stopAutomation(false);
