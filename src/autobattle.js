@@ -335,7 +335,7 @@ class SoulDemonBlade {
       31021, // Area 66 at 19.00
       31022, // Area 71 at 8.00
       28006, // Area 81 at 7.00
-      // TODO: Area 86 10.00
+      28007, // Area 86 at 10.00
     ];
     const selector = ids.map((id) => `#npc-container-${id} canvas`).join(', ');
     const npcCanvas = document.querySelector(selector);
