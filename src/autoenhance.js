@@ -67,8 +67,8 @@ class Refine {
       return;
     }
 
-    const requiredStats = requiredStatsInput.split(',');
-    const optionalStats = optionalStatsInput.split(',');
+    const requiredStats = requiredStatsInput.split(',').map((stat) => stat.trim());
+    const optionalStats = optionalStatsInput.split(',').map((stat) => stat.trim());
 
     this.isRunningRefine = true;
 
