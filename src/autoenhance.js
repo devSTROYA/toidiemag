@@ -33,14 +33,18 @@ class Refine {
 
   static reroll() {
     return new Promise((resolve) => {
-      let attemptButton = document.querySelector('#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button:nth-child(2)');
+      let attemptButton = document.querySelector(
+        '#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button:nth-child(2), #game-container > div.panel--dark > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button:nth-child(2)'
+      );
 
       if (attemptButton) {
         attemptButton.click();
         console.log('🔄 Clicked Attempt button!');
 
         setTimeout(() => {
-          let acceptButton = document.querySelector('#game-container > div:nth-child(6) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)');
+          let acceptButton = document.querySelector(
+            '#game-container > div:nth-child(6) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2), #game-container > div:nth-child(6) > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > button:nth-child(2)'
+          );
           if (acceptButton) {
             acceptButton.click();
             console.log('✅ Clicked Accept button!');
@@ -130,8 +134,12 @@ class Enhance {
       document.getElementById('toggleButtonEnhance')?.click();
     }
 
-    let attemptButton = document.querySelector('#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(1) > button:nth-child(2)');
-    let acceptButton = document.querySelector('#game-container > div:nth-child(6) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)');
+    let attemptButton = document.querySelector(
+      '#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(1) > button:nth-child(2), #game-container > div.panel--dark > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(1) > button:nth-child(2)'
+    );
+    let acceptButton = document.querySelector(
+      '#game-container > div:nth-child(6) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2), #game-container > div:nth-child(6) > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > button:nth-child(2)'
+    );
 
     if (attemptButton) attemptButton.click();
 
@@ -236,7 +244,7 @@ class Inscribe {
     const boundCallback = this.autoInscribe.bind(this);
 
     const lvlElem = document.querySelector(
-      '#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > pre:nth-child(1)'
+      '#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > pre:nth-child(1), #game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > pre:nth-child(1)'
     );
 
     if (lvlElem) {
@@ -248,14 +256,16 @@ class Inscribe {
       }
     }
 
-    const inscribeButton = document.querySelector('#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > button');
+    const inscribeButton = document.querySelector(
+      '#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > button, #game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > button'
+    );
     if (inscribeButton && inscribeButton.innerText.trim() === 'Attempt') {
       inscribeButton.click();
       console.log("✍️ Clicked 'Attempt' button...");
 
       setTimeout(() => {
         const resultElem = document.querySelector(
-          '#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div > pre:nth-child(1)'
+          '#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div > pre:nth-child(1), #game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div:nth-child(2) > div > pre:nth-child(1)'
         );
         if (resultElem) {
           const resultText = resultElem.innerText.trim().toLowerCase();
@@ -311,9 +321,13 @@ class Recast {
 
     const boundCallback = this.autoRecast.bind(this);
 
-    const attemptButton = document.querySelector('#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button');
+    const attemptButton = document.querySelector(
+      '#game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button, #game-container > div:nth-child(4) > div:nth-child(3) > div > div:nth-child(2) > div:nth-child(3) > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > div > div.j-panel > div:nth-child(2) > div > div:nth-child(2) > button'
+    );
 
-    const acceptButton = document.querySelector('#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2)');
+    const acceptButton = document.querySelector(
+      '#game-container > div.panel--original > div.themed_panel.theme__transparent--original > div > div:nth-child(2) > button:nth-child(2), #game-container > div.panel--dark > div.themed_panel.theme__transparent--dark > div > div:nth-child(2) > button:nth-child(2)'
+    );
 
     if (!attemptButton || attemptButton.disabled) {
       console.log('⛔ Recast Attempt unavailable (button disabled). Stopping loop.');
